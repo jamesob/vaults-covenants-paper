@@ -9,3 +9,29 @@ featureful vault implementation. The design assumes the deployment of package re
 and ephemeral anchors for dynamic fee management, but allows for different fee
 management approaches should they come. It allows batching vault operations, partial
 unvaultings, dynamic withdrawal targets, and recursive deposits.
+
+### Compiling
+
+Requires `xelatex`; probably, you want to install `texlive-most` on your distribution.
+
+Use this handy shell function:
+
+```sh
+watch-tex () {
+  JOBNAME=${1%.tex}
+  xelatex -halt-on-error -shell-escape $1
+  evince $JOBNAME.pdf &
+  PDF_PS=$!
+  RUNTEX="xelatex -halt-on-error -shell-escape $1"
+  BIB="$JOBNAME.bib"
+  if [ -f "${BIB}" ]
+  then
+    ls $1 | entr -s "rm -f ${BIB} ; $RUNTEX ; biber $JOBNAME ; $RUNTEX ; $RUNTEX"
+  else
+    ls $1 | entr -s "$RUNTEX"
+  fi
+  kill ${PDF_PS}
+}
+
+$ watch-tex 2022-vaults-paper.tex
+```
