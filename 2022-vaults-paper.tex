@@ -653,15 +653,22 @@ redo a vault initialization.
 
 We have already written about the important benefits that this scheme provides relative
 to alternatives. While we think the set of trade-offs for \opv{} are
-very attractive, it is important to acknowledge downsides.
+appealing, it is important to acknowledge downsides.
 
 A scheme that does not codify vault semantics at the script interpreter layer, e.g. one
 that uses only a general covenant primitive like transaction introspection within
-script, allows for more flexibility in the particular control flow of the vault. It
-facilitates user experimentation.
+script, allows for more flexibility in the particular control flow of the vault, since
+the rules of the vault are specified by the end-user instead of the consensus engine.
+It more easily facilitates user experimentation.
 
 For example, perhaps a user prefers to safeguard their recovery path with a
-signature rather than revealing the preimage to a \spk{} hash.
+signature rather than revealing the preimage to a \spk{} hash, so that discovery of the
+recovery path doesn't allow an unauthenticated user to sweep open vaults to recovery.
+
+The downside, of course, is that this results in very large on-chain script sizes. In
+order to make vault constructions concise, they ultimately must be codified in
+validation rules, barring some breakthrough in a zero-knowledge proof system that could
+be supported on-chain.
 
 \section*{Conclusion}
 
@@ -674,9 +681,9 @@ in essence this scheme offers multisig-like security for an expected operational
 on par with single sig use.
 
 The \opv{} proposal is unique in enabling robust dynamic fee management (thanks to
-package relay and ephmeral anchors). It also uniquely enables batch vault management, a
-critical feature when considering the need to respond to attackers efficiently and plan
-for increased demand in block space.
+package relay and ephmeral anchors). It also enables batch management, a
+critical feature when considering the need to respond to attackers efficiently and make
+judicious use of chain space.
 
 
 \section*{TODO}
