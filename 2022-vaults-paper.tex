@@ -639,6 +639,16 @@ failure modes associated with vaults, the authors have become convinced that the
 ability to recover or unvault as efficiently as possible is crucial
 to thwarting an attacker.
 
+\subsection*{Recursive deposits (revaults)}
+
+Another benefit of supporting dynamic unvault targets is that an arbitrary number of
+partial unvaults can happen by withdrawing to some output outside the vault, but then
+redepositing some amount back into the same \code{OP\_VAULT ...} construction.
+
+This could enable, for example, an exchange to offer a vault address to a customer,
+allow them to make multiple deposits, and support partial withdrawals without having to
+redo a vault initialization.
+
 \section*{Downsides relative to other designs}
 
 We have already written about the important benefits that this scheme provides relative
@@ -672,8 +682,6 @@ for increased demand in block space.
 \section*{TODO}
 
 - Mention operational considerations of running a watchtower
-
-- Redepositing to a vault address?
 
 \printbibliography
 
