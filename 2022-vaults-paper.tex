@@ -137,7 +137,7 @@
 
 @misc{OPTX,
   author = {Rusty Russell},
-  title = {OPTX: generalized covenants reduced to OPCHECKTEMPLATEVERIFY},
+  title = {OP\_TX: generalized covenants reduced to OPCHECKTEMPLATEVERIFY},
   year = {2022},
   url = {https://lists.linuxfoundation.org/pipermail/bitcoin-dev/2022-May/020450.html},
 }
@@ -207,12 +207,12 @@
 \begin{abstract}
 
   Vaults are a technique for substantially reducing the risk of Bitcoin management. In
-  this paper, we examine their relationship to different covenant implementations. We
+  this paper, we examine their relationship to different covenant designs. We
   survey the vault implementations that are currently usable, as well as those that
   would be possible only with proposed consensus updates (e.g. \ctv{}). 
 
   A new approach, \opv{}, is presented which avoids the pitfalls of a general
-  covenant proposal while still allowing the covenant-like behavior necessary for a
+  covenant proposal while still allowing the general-covenant behavior necessary for a
   featureful vault implementation. The design assumes the deployment of package relay
   and ephemeral anchors for dynamic fee management, but allows for different fee
   management approaches should they come. It allows batching vault operations, partial
@@ -234,27 +234,28 @@ requirements of satisfying a one-time unlocking script. Covenants can be written
 such a way that they express recursive constraints on outputs, so that the effective
 period of covenant enforcement can span an arbitrary number of transactions. 
 
-Currently there is no way to enforce a covenant ``on chain,'' but there are many
+Currently there is no way to enforce covenants ``on-chain,'' but there are many
 pending proposals for how to modify Bitcoin's validation rules to allow for this
-functionality. Proposals can be divided into two kinds:
+functionality. Covenant proposals can be divided into two kinds:
 
 \begin{itemize}
   \item \textbf{limited}: where the state machine of possible transactions within the lifecycle
-    of a covenant is predetermined and therefore bound (e.g. \cite{CTV}, \cite{APO},
-    \cite{OPTX}), and
+    of a covenant is predetermined and therefore bound (e.g. \code{OP\_CTV} \cite{CTV},
+    \code{ANYPREVOUT} \cite{APO}, \code{OP\_TX} \cite{OPTX}), and
 
   \item \textbf{general}: where the state machine is expressed within Bitcoin script,
-    and can reapply itself indefinitely, making it potentially unbounded (e.g. \cite{ElementsScript}).
+    and can reapply itself indefinitely, making it potentially unbounded (e.g.
+    transaction introspection opcodes and \code{OP\_CHECKSIGFROMSTACK} \cite{ElementsScript}).
 
 \end{itemize}
 
-Vaults are an especially useful kind of covenant that give Bitcoin users
-operational simplicity during expected use, but heightened security in light of an
-attack. When they were originally presented in \cite{Cov}, a vault was defined as a
-simple covenant that ensured that the spend of a coin was only allowed after
-broadcasting an intent to unvault and waiting some period. During this delay,
-the funds could be ``clawed back'' into a prespecified recovery path in case the
-proposed spend was unauthorized.
+Vaults are an especially useful kind of covenant that give Bitcoin users operational
+simplicity during expected use, but heightened security in the event of unauthorized
+access to private keys. When they were originally presented in \cite{Cov}, a vault was
+defined as a simple covenant that ensured that the spend of a coin was only allowed
+after broadcasting an intent to unvault and waiting some period. During this delay, the
+funds could be ``clawed back'' into a prespecified recovery path in case the proposed
+spend was unexpected.
 
 In order to make use of this covenant, a user would need to send their coins into a
 vault, then configure a watchtower process to monitor the chain. If the watchtower
@@ -300,7 +301,7 @@ limited recovery window, but it has a number of drawbacks:
     recovery wallet.
 
   \item Arbitrary vault withdrawal amounts are not possible after the structure of the
-    vault is ``frozen'' by presigning.
+    vault is locked in by presigning.
 
   \item Vault operations, namely recoveries and unvaultings, cannot be batched together. This is
     especially unfortunate because in the case of a key leak, it may be
@@ -313,7 +314,7 @@ limited recovery window, but it has a number of drawbacks:
 \subsection*{Precomputed vaults with covenants}
 
 Having some kind of general on-chain covenant mechanism improves the situation
-somewhat. Script functionality like \ctv{} \cite{CTV} allows us to use a vault
+somewhat. Script functionality like \ctv{} (CTV) \cite{CTV} allows us to use a vault
 scheme very similar to presigned transaction vaults, but with the considerable benefit
 that we do not need to engineer and operate an ephemeral key signing and deletion
 ceremony, nor do we have to persist critical presigned transactions indefinitely.
@@ -332,29 +333,30 @@ Unfortunately, this approach still has major limitations.
 \begin{itemize}
 
   \item By nature of being precomputed, the number of
-    vault operations is limited and predefined, ruling out arbitrary numbers of partial
+    vault operations is limited and predefined, ruling out arbitrary partial
     unvaults and recursive re-vaults. 
 
-  \item The destinations are also fixed to a set of keys, introducing risk. Unvaulting
+  \item The destinations are still fixed to a set of keys. Unvaulting
     must be done through a single predetermined path. Fee management keys must be
-    precommitted to (more on this later). 
+    precommitted to (more on fees later). 
 
   \item Vault operations cannot be batched together; this turns out to be a big
     limitation when responding to attackers.
 
 \end{itemize}
 
-These limitation apply also to other, similar vault implementations using different
-limited-covenant approaches, e.g. ANYPREVOUT (\cite{APOVaults}) and the (proposed but
-not implemented) 
-OP\_TX.
+These caveats also apply to other, similar vault implementations using different
+limited-covenant approaches in which the allowed graph of transactions must be
+precomputed, e.g. \code{ANYPREVOUT} (\cite{APOVaults}) and the (proposed but not implemented)
+\code{OP\_TX} (\cite{OPTX}).
 
 \section*{Recursive vaults with general covenants}
 
 If we introduce sufficiently powerful script functionality to allow arbitrary
 introspection of the spending transaction, we would have the ability to write any kind
 of covenant -- including a fully-featured, recursive vault -- without having to resort
-to presigned transactions, multi-sig emulation, or precomputed transaction graphs.
+to presigned transactions, covenant emulation via multi-sig, or CTV-style precomputed
+transaction graphs.
 
 Such a vault would be free from the limitations of the precomputed approaches described
 above, but at the cost of significant script complexity. Writing the necessary script
@@ -371,10 +373,9 @@ general covenant mechanism (which isn't even guaranteed to happen) seems subopti
 \section*{\opv{}}
 
 Instead of resigning ourselves to the limitations of precomputed vaults, or waiting for
-the perfect general-covenant mechanism is deployed to script, we propose to evaluate
-the the creation of opcodes \opv{} and \opuv{}, which have
-covenant-like characteristics but do not attempt to address the general problem of
-covenants.
+a general-covenant mechanism to be deployed to script (a daunting prospect), we propose
+to evaluate the the creation of opcodes \opv{} and \opuv{}, which have covenant-like
+characteristics but do not attempt to address the general problem of covenants.
 
 This approach has a complete set of desirable features for safer custodial operations,
 none of the limitations of precomputed vaults, and is more concise and usable than a
