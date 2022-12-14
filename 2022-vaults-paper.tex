@@ -25,7 +25,7 @@
 \BeforeBeginEnvironment{minted}{\bigskip\begin{tcolorbox}}
 \AfterEndEnvironment{minted}{\end{tcolorbox}\bigskip}
 
-\setstretch{1.2}
+\setstretch{1.1}
 
 % For proper rendering and hyphenation of words containing Latin characters (including in bib files)
 \usepackage[T1]{fontenc}
@@ -169,6 +169,13 @@
   year = {2022},
   url = {https://github.com/darosior/simple-anyprevout-vault},
 }
+
+@misc{Swambo,
+  author = {Jacob Swambo and Spencer Hommel and Bob McElrath and Bryan Bishop},
+  title = {Custody Protocols Using Bitcoin Vaults},
+  year = {2020},
+  url = {https://arxiv.org/pdf/2005.11776},
+}
 \end{filecontents}
 \addbibresource{\jobname.bib}
 
@@ -186,10 +193,8 @@
 % and set <dim> to something 5cm or larger.
 
 \author{James O'Beirne \\
-  \texttt{james.obeirne@gmail.com}
-\and
-  Brian Langel \\
-  \texttt{brian.langel@nydig.com} \\}
+  \texttt{vaults@au92.org}
+}
 
 \date{\today}
 \title{Vaults and Covenants}
@@ -206,7 +211,7 @@
 \maketitle
 \begin{abstract}
 
-  Vaults are a technique for substantially reducing the risk of Bitcoin management. In
+  Vaults are a technique for substantially reducing the risk of Bitcoin theft. In
   this paper, we examine their relationship to different covenant designs. We
   survey the vault implementations that are currently usable, as well as those that
   would be possible only with proposed consensus updates (e.g. \ctv{}). 
@@ -224,8 +229,8 @@
 
 Custodying bitcoin is notoriously difficult. It is roughly equivalent to
 another task famous for its trail of bodies: keeping sensitive data accessible but out
-of unauthorized reach. Luckily, due to the unique programmability of Bitcoin script,
-custodians do not necessarily have to rely solely on the Sisyphean task of key
+of unauthorized reach. Luckily, due to the programmability of Bitcoin script,
+custodians do not necessarily have to rely solely on the failure-prone task of key
 management.
 
 In Bitcoin, a \emph{covenant} is a constraint put on how a coin can be spent on the
@@ -234,12 +239,13 @@ requirements of satisfying a one-time unlocking script. Covenants can be written
 such a way that they express recursive constraints on outputs, so that the effective
 period of covenant enforcement can span an arbitrary number of transactions. 
 
-Currently there is no way to enforce covenants ``on-chain,'' but there are many
-pending proposals for how to modify Bitcoin's validation rules to allow for this
-functionality. Covenant proposals can be divided into two kinds:
+Currently there is no way to enforce covenants ``on-chain,'' or endogenously within
+bitcoin's validation rules, but there are many pending proposals for how to modify
+Bitcoin's validation rules to allow for this functionality. Covenant proposals can be
+divided into two kinds:
 
 \begin{itemize}
-  \item \textbf{limited}: where the state machine of possible transactions within the lifecycle
+  \item \textbf{precomputed}: where the state machine of possible transactions within the lifecycle
     of a covenant is predetermined and therefore bound (e.g. \code{OP\_CTV} \cite{CTV},
     \code{ANYPREVOUT} \cite{APO}, \code{OP\_TX} \cite{OPTX}), and
 
@@ -281,7 +287,8 @@ sign a transaction sending coins to an address controlled by that key, presign a
 tree of possible transactions using that key, and then delete the key. 
 
 This locks the coins into a predetermined flow, and technically satisfies the
-definition of a vault.
+definition of a vault. A robust implementation of this approach is described in detail
+in \cite{Swambo}, as well as many related considerations like running a watchtower.
 
 Presigning transactions to construct vaults in this way does add the safety of a
 limited recovery window, but it has a number of drawbacks:
@@ -326,7 +333,7 @@ This is demonstrated in \cite{OBeirne}.
 This approach has the benefits of not requiring storage of anything aside from the vault
 parameters used to generate the CTV transaction graph, which is not particularly
 sensitive. It also doesn't require ephemeral keys due to the nature of CTV, which uses
-an on-chain commitment to enforce a limited covenant.
+an on-chain commitment to enforce a precomputed covenant.
 
 Unfortunately, this approach still has major limitations. 
 
@@ -346,7 +353,7 @@ Unfortunately, this approach still has major limitations.
 \end{itemize}
 
 These caveats also apply to other, similar vault implementations using different
-limited-covenant approaches in which the allowed graph of transactions must be
+precomputed-covenant approaches in which the allowed graph of transactions must be
 precomputed, e.g. \code{ANYPREVOUT} (\cite{APOVaults}) and the (proposed but not implemented)
 \code{OP\_TX} (\cite{OPTX}).
 
@@ -525,8 +532,8 @@ creating \emph{2v} \footnote{An anchor output for fee control
 is needed for each sweep transaction} 
 outputs for \emph{v} vaults.
 
-Note that this batching option is not possible in vault schemes that rely on limited,
-i.e. precomputed, covenant techniques.
+Note that this batching option is not possible in vault schemes that rely on
+precomputed covenant techniques.
 
 \begin{figure}[H]
 \includegraphics[width=0.9\textwidth]{batch-sweep.pdf}
@@ -538,11 +545,11 @@ i.e. precomputed, covenant techniques.
 \subsection*{Managing fees safely}
 
 One difficulty when designing this scheme was determining how to adjust the fee rate of
-transactions that happen sometime after vault creation. The fee environment may be very
-different during vault operations than when the vault was initially created; fees may
-be much higher. 
+transactions that happen sometime after vault creation. The fee environment may differ
+considerably from when the vault was initially created to when it will be accessed;
+fees may be much higher. 
 
-The most common method of adjusting fee rate is to vary output
+The most common method of increasing fee rate is to lower output
 amounts, which leaves more bitcoin available to miners and thus adds to the
 incentive to include a given transaction.
 During an \opv{} lifecycle, allowing variable amounts would unfortunately
@@ -570,8 +577,8 @@ unvault transactions if the full value of the vaulted coins must be preserved?
 \subsubsection*{Saved by package relay and ephemeral anchors}
 
 Fee management is a thorny part of designing any contracting protocol built atop
-Bitcoin script. Transactions which are presigned, or covenant structures that fix
-amounts, cannot vary their amounts to adjust fees dynamically. A common workaround is
+Bitcoin script. Transactions which are presigned (or covenant structures that fix
+amounts) cannot vary their amounts to adjust fees dynamically. A common workaround is
 to attach an ``anchor output'' \cite{OptechAnchors}, which is an output that is
 intended to be spent by some child transaction. Spending the child can raise the
 effective feerate of its parent, the precommitted contract transaction. This is
@@ -619,8 +626,9 @@ any ephemeral anchor outputs in the \opv{} scheme are strictly optional.
 \section*{The importance of dynamic unvault targets}
 
 In vault schemes which are usable today, the unvault target is always fixed at vault
-creation time. Even in schemes that assume the use of a limited covenant mechanism like
-CHECKTEMPLATEVERIFY or ANYPREVOUT, the set of withdrawal targets is similarly fixed.
+creation time. Even in schemes that assume the use of a precomputed covenant mechanism
+like \code{CHECKTEMPLATEVERIFY} or \code{ANYPREVOUT}, the set of withdrawal targets is
+similarly fixed.
 
 The design presented here allows for the withdrawal target to be decided at unvault
 time, before the delay period, rather than needing to be specified during the creation
@@ -646,7 +654,8 @@ to thwarting an attacker.
 
 Another benefit of supporting dynamic unvault targets is that an arbitrary number of
 partial unvaults can happen by withdrawing to some output outside the vault, but then
-redepositing some amount back into the same \code{OP\_VAULT ...} construction.
+redepositing the remaining balance back into the same \code{OP\_VAULT [...]} 
+construction.
 
 This could enable, for example, an exchange to offer a vault address to a customer,
 allow them to make multiple deposits, and support partial withdrawals without having to
@@ -688,10 +697,6 @@ package relay and ephmeral anchors). It also enables batch management, a
 critical feature when considering the need to respond to attackers efficiently and make
 judicious use of chain space.
 
-
-\section*{TODO}
-
-- Mention operational considerations of running a watchtower
 
 \printbibliography
 
