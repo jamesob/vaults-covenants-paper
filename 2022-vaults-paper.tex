@@ -464,10 +464,27 @@ This output can only be spent one of two ways:
     below.
 \end{enumerate}
 
+
+
 \subsection*{Triggering an unvault}
 
 To withdraw bitcoin from an \opv{}-encumbered output to some arbitrary destination, it
-must first be spent into an \opuv{} output having a \code{scriptPubKey} of the form
+must first be spent into an \opuv{} output.
+
+\subsubsection*{Witness requirements}
+
+A witness must be provided for the \opv{} input being spent which contains
+
+\begin{enumerate}
+  \item a witness program (\spk{}) that, when hashed with \code{sha256d}, yields the
+    \code{<unvault-pk-hash>}, and
+  \item a witness stack satisfying that witness program.
+\end{enumerate}
+This witness is crucial for preventing unauthorized unvault attempts.
+
+\subsubsection*{Spending output requirements (covenant)}
+
+The \opuv{} \spk{} must have the form
 
 \begin{minted}{sh}
   OP_UNVAULT <recovery-hash> <delay-period> <unvault-target-hash> 
@@ -485,10 +502,13 @@ must first be spent into an \opuv{} output having a \code{scriptPubKey} of the f
 In other words, the target hash commits to the set of outputs that are proposing to be
 withdrawn to. 
 
+\subsection*{Withdrawal to the unvault target}
+
 The unvaulting party must now wait a total of \emph{delay-period} blocks before being
 able to broadcast a transaction spending the \opuv{} output into a set of outputs
 satisfying \emph{unvault-target-hash}. No witness is needed for this finalizing
-``withdrawal'' transaction.
+``withdrawal'' transaction, which represents the completion of the vault lifecycle for
+all amounts which are not revaulted.
 
 If the owner of the vault does not recognize this proposed
 withdrawal, he can sweep the vault into the recovery path before the delay period ends.
@@ -505,7 +525,7 @@ The witness for the swept output is empty, since the only authorization necessar
 is simply that the \spk{} being spent to matches the \code{<recovery-hash>} committed
 to in the parent \opv{} output.
 
-\subsubsection*{Denial of service protection}
+\subsubsection*{Denial-of-service protection}
 
 During the creation of \opv{} and \opuv{} outputs, the recovery address remains hidden
 behind a hash. This avoids denial-of-service (DoS) attacks that involve a third party
@@ -525,7 +545,7 @@ recovery path may be at risk due to a compromise in the owner's infrastructure.
 
 If multiple vaults share a common \emph{recovery-hash}, they can be swept in batch.
 This is an especially important feature for users that maintain many vaults, since a key
-compromise might necessitate the rapid sweeping of many vaults at once before a delay
+compromise might necessitate rapidly sweeping of many vaults at once before a delay
 period has elapsed. Batching the sweep reduces the chainspace required significantly,
 because we're able to sweep to a total of two outputs instead of
 creating \emph{2v} \footnote{An anchor output for fee control
@@ -620,8 +640,12 @@ required by consensus to be mined alongside other transactions which they are
 sponsoring. This allows CPFP-like adjustment of fee rate, but without a wasted output
 or specific planning.
 
-In order to allow for the possible adoption of such a proposal,
-any ephemeral anchor outputs in the \opv{} scheme are strictly optional.
+In order to allow for the possible adoption of such a proposal, any ephemeral anchor
+outputs in the \opv{} scheme are strictly optional. To avoid pinning by an adversary
+who discovers the recovery path, any transaction for which the ephemeral anchor is
+optional must be marked for replacement by fee (RBF) (by policy, as a part of this
+proposal). This ensures that the vault owner can override spurious sweep transactions
+that exclude the anchor with higher-fee packages making use of the anchor.
 
 \section*{The importance of dynamic unvault targets}
 
@@ -673,9 +697,10 @@ script, allows for more flexibility in the particular control flow of the vault,
 the rules of the vault are specified by the end-user instead of the consensus engine.
 It more easily facilitates user experimentation.
 
-For example, perhaps a user prefers to safeguard their recovery path with a
-signature rather than revealing the preimage to a \spk{} hash, so that discovery of the
-recovery path doesn't allow an unauthenticated user to sweep open vaults to recovery.
+For example, perhaps a user prefers to safeguard their recovery path with a signature
+rather than revealing the preimage to a witness (program) hash, so that discovery of
+the recovery path doesn't allow an unauthenticated user to sweep open vaults to
+recovery.
 
 The downside, of course, is that this results in very large on-chain script sizes. In
 order to make vault constructions concise, they ultimately must be codified in
