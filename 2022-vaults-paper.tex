@@ -669,16 +669,21 @@ coins to their ultimate destination.
 
 If a withdrawal target can be set at unvault time, no such intermediary wallet is
 needed. This saves on operational complexity, avoids a potential avenue of compromise,
-and also removes the need for an additional transaction -- which may onerous when 
+and also removes the need for an additional transaction -- which may be onerous when 
 considering possible future demand for chainspace.
 
 \subsection*{Batching}
 
-Dynamic unvault targets also allow for output amount adjustment that enables multiple
-vaults to be unvaulted (or recovered) to a single set of output targets. This isn't
-only important as blockspace becomes scarcer; the ability to batch may prevent a
-situation in which, given a large number of vaults and a low timeout period, a custodian
-otherwise may not be able to get all the confirmations needed to thwart an attacker.
+Dynamic unvault targets also allow multiple vaults to be unvaulted (or recovered) to a
+single set of output targets instead of requiring separate transactions for each vault
+deposit. In the case of a withdrawal, unvaulted funds can skip the ``warm'' wallet step
+that precomputed vault funds must pass through on their way to destinations
+only known at unvault time. 
+
+This isn't only important as blockspace becomes scarcer;
+the ability to batch may prevent a situation in which, given a large number of vaults
+and a low timeout period, a custodian otherwise may not be able to get all the
+confirmations needed to thwart an attacker.
 
 \begin{figure}[H]
 \includegraphics[width=0.9\textwidth]{withdrawal-comparison.pdf}
@@ -751,7 +756,7 @@ judicious use of chain space.
 
 \section*{Acknowledgements}
 
-Thanks to BL for review.
+Thanks to BL and Jeremy Rubin for review.
 
 \printbibliography
 
