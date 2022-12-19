@@ -214,7 +214,7 @@
   Vaults are a technique for substantially reducing the risk of Bitcoin theft. In
   this paper, we examine their relationship to different covenant designs. We
   survey the vault implementations that are currently usable, as well as those that
-  would be possible only with proposed consensus updates (e.g. \ctv{}). 
+  would be possible only with proposed consensus changes (e.g. \ctv{}). 
 
   A new approach, \opv{}, is presented which avoids the pitfalls of a general
   covenant proposal while still allowing the general-covenant behavior necessary for a
@@ -263,7 +263,7 @@ after broadcasting an intent to unvault and waiting some period. During this del
 funds could be ``clawed back'' into a prespecified recovery path in case the proposed
 spend was unexpected.
 
-In order to make use of this covenant, a user would need to send their coins into a
+In order to make use of this covenant, a user would need to spend their coins into a
 vault, then configure a watchtower process to monitor the chain. If the watchtower
 detected an unexpected unvaulting, it could automatically broadcast a transaction that
 sweeps the funds to safety.
@@ -315,6 +315,11 @@ limited recovery window, but it has a number of drawbacks:
     critical to sweep all vaults to the recovery path as soon as possible; otherwise the
     custodian may end up racing the attacker to spend out of the vault.
 
+  % TODO review this point - is the example actually a good idea?
+  \item Once initiated, precomputed cannot (or \emph{should not}) be sent to after the
+    inital deposit. This prevents e.g. exchanges from initiating vaults and then
+    letting customers deposit directly into vaults at-will.
+
 \end{itemize}
 
 
@@ -345,7 +350,8 @@ Unfortunately, this approach still has major limitations.
 
   \item The destinations are still fixed to a set of keys. Unvaulting
     must be done through a single predetermined path. Fee management keys must be
-    precommitted to (more on fees later). 
+    precommitted; if the corresponding wallet is lost, ability to finalize vault 
+    transactions may be impaired (more on fees later). 
 
   \item Vault operations cannot be batched together; this turns out to be a big
     limitation when responding to attackers.
@@ -372,10 +378,11 @@ only be very complex, but it would be very verbose on-chain. The \spk{} sizes wo
 quite large for what might be a very common operation.
 
 There is also a significant chance that the Bitcoin community might not reach agreement
-on how to proceed towards a general covenant solution. Vaults would be considerably to
-useful all users of Bitcoin today, since all users are concerned with custody;
-gating this highly practical feature on the precondition of agreeing to and deploying a
-general covenant mechanism (which isn't even guaranteed to happen) seems suboptimal.
+on how to proceed towards a general covenant solution. Vaults have considerable utility
+for a great many Bitcoin users in the immediate term, since all users are concerned
+with custody. Gating this highly practical feature on establishing broad consensus
+around a general covenant mechanism (which isn't even guaranteed to happen) seems
+suboptimal.
 
 \section*{\opv{}}
 
@@ -422,7 +429,7 @@ Each \opv{}-style vault makes use of a few pieces of essential data. These inclu
     catastrophic because any unvault can be interrupted and swept to the recovery
     address. 
 
-    Vaults which have this in common can unvaulted in batch.
+    Vaults which have this in common can be unvaulted in batch.
     
   \end{item}
 
@@ -545,7 +552,7 @@ recovery path may be at risk due to a compromise in the owner's infrastructure.
 
 If multiple vaults share a common \emph{recovery-hash}, they can be swept in batch.
 This is an especially important feature for users that maintain many vaults, since a key
-compromise might necessitate rapidly sweeping of many vaults at once before a delay
+compromise might necessitate rapidly sweeping many vaults at once before a delay
 period has elapsed. Batching the sweep reduces the chainspace required significantly,
 because we're able to sweep to a total of two outputs instead of
 creating \emph{2v} \footnote{An anchor output for fee control
@@ -570,7 +577,7 @@ considerably from when the vault was initially created to when it will be access
 fees may be much higher. 
 
 The most common method of increasing fee rate is to lower output
-amounts, which leaves more bitcoin available to miners and thus adds to the
+amounts, which leaves more bitcoin available to miners, adding to the
 incentive to include a given transaction.
 During an \opv{} lifecycle, allowing variable amounts would unfortunately
 present some problems.
@@ -662,17 +669,36 @@ coins to their ultimate destination.
 
 If a withdrawal target can be set at unvault time, no such intermediary wallet is
 needed. This saves on operational complexity, avoids a potential avenue of compromise,
-and also removes the need for an additional transaction -- which may be no small
-consideration when considering possible future demand for chainspace.
+and also removes the need for an additional transaction -- which may onerous when 
+considering possible future demand for chainspace.
 
 \subsection*{Batching}
 
 Dynamic unvault targets also allow for output amount adjustment that enables multiple
 vaults to be unvaulted (or recovered) to a single set of output targets. This isn't
-only important as blockspace becomes scarcer. After ruminating for some time on the
-failure modes associated with vaults, the authors have become convinced that the
-ability to recover or unvault as efficiently as possible is crucial
-to thwarting an attacker.
+only important as blockspace becomes scarcer; the ability to batch may prevent a
+situation in which, given a large number of vaults and a low timeout period, a custodian
+otherwise may not be able to get all the confirmations needed to thwart an attacker.
+
+\begin{figure}[H]
+\includegraphics[width=0.9\textwidth]{withdrawal-comparison.pdf}
+\centering
+\caption{Comparison of the ``expected'' withdrawal flow for precomputed vaults vs. an
+  \opv{} usage. Note that due to (i) the ability to consolidate the unvault and (ii) skip the
+  warm wallet, the \opv{} design uses something on the order of $2v$ fewer outputs (for
+  $v$ vaults) than the precomputed vault does.}
+\end{figure}
+
+
+\begin{figure}[H]
+\includegraphics[width=0.9\textwidth]{recovery-comparison.pdf}
+\centering
+\caption{
+  Comparison of the recovery process. The top row shows an interrupted unvault, the
+  bottom shows recovery prior to an attempted unvault. In each case, \opv{} reduces
+  output creation on the order of $v$.
+}
+\end{figure}
 
 \subsection*{Recursive deposits (revaults)}
 
@@ -722,6 +748,10 @@ package relay and ephmeral anchors). It also enables batch management, a
 critical feature when considering the need to respond to attackers efficiently and make
 judicious use of chain space.
 
+
+\section*{Acknowledgements}
+
+Thanks to BL for review.
 
 \printbibliography
 
