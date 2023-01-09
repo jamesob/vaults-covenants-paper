@@ -211,24 +211,24 @@
 \maketitle
 \begin{abstract}
 
-  Vaults are a technique for substantially reducing the risk of Bitcoin theft. In
-  this paper, we examine their relationship to different covenant designs. We
+  Vaults are a technique for substantially reducing the risk of Bitcoin theft. In this
+  paper, we examine how they might be implemented using different covenant designs. We
   survey the vault implementations that are currently usable, as well as those that
-  would be possible only with proposed consensus changes (e.g. \ctv{}). 
+  would be possible only with proposed consensus changes. 
 
-  A new approach, \opv{}, is presented which avoids the pitfalls of a general
-  covenant proposal while still allowing the general-covenant behavior necessary for a
-  featureful vault implementation. The design assumes the deployment of package relay
-  and ephemeral anchors for dynamic fee management, but allows for different fee
-  management approaches should they come. It allows batching vault operations, partial
-  unvaultings, dynamic withdrawal targets, and recursive deposits.
+  A new approach, \opv{}, is presented which avoids the pitfalls of a general covenant
+  proposal while still enabling the behavior necessary for a featureful vault
+  implementation. The design assumes the deployment of package relay and ephemeral
+  anchors for dynamic fee management, but allows for future fee management approaches,
+  e.g. transaction sponsors, should they come. \opv{} uniquely allows batching operations,
+  partial unvaultings, dynamic withdrawal targets, and recursive deposits.
 
 \end{abstract}
 
 \section*{Introduction}
 
 Custodying bitcoin is notoriously difficult. It is roughly equivalent to
-another task famous for its trail of bodies: keeping sensitive data accessible but out
+another task famous for its difficulty: keeping sensitive data accessible but out
 of unauthorized reach. Luckily, due to the programmability of Bitcoin script,
 custodians do not necessarily have to rely solely on the failure-prone task of key
 management.
@@ -240,7 +240,7 @@ such a way that they express recursive constraints on outputs, so that the effec
 period of covenant enforcement can span an arbitrary number of transactions. 
 
 Currently there is no way to enforce covenants ``on-chain,'' or endogenously within
-bitcoin's validation rules, but there are many pending proposals for how to modify
+Bitcoin's validation rules, but there are many pending proposals for how to modify
 Bitcoin's validation rules to allow for this functionality. Covenant proposals can be
 divided into two kinds:
 
@@ -265,16 +265,45 @@ spend was unexpected.
 
 In order to make use of this covenant, a user would need to spend their coins into a
 vault, then configure a watchtower process to monitor the chain. If the watchtower
-detected an unexpected unvaulting, it could automatically broadcast a transaction that
-sweeps the funds to safety.
+detected an unexpected unvaulting, it could alert the owner or automatically broadcast
+a transaction that sweeps the funds to safety.
+ 
+\begin{figure}[H]
+  \includegraphics[width=0.7\linewidth]{basic.pdf}
+  \centering
+  \caption{The basic lifecycle of a Bitcoin vault.}
+\end{figure}
 
-Since then, more sophisticated vault designs have been proposed which allow more
-detailed constraints like the enforcement of multiple discrete spending
-policies. But in the opinion of the author, these advanced features remain niche and
-only benefit sophisticated industrial users. The main benefit of vaults 
-likely remains the enforcement of a ``withdrawal confirmation period'' that
-allows the owner of a vault to intervene in a predetermined way to avoid theft.
 
+\section*{An idealized vault}
+
+The most useful incarnation of a vault design would allow Bitcoin custodians to
+benefit from a predetermined contestation period and recovery method with minimal
+overhead. 
+
+Some features that are crucial to this include
+
+\begin{itemize}
+  \item \textbf{efficient reuse of an existing vault configuration}. A single vault
+    \spk{} should be able to ``receive'' multiple deposits and still facilitate
+    efficient administration of the vaulted coins. Batched operations for recovery and
+    unvault should be supported in order to allow managing such a vault efficiently.
+
+  \item \textbf{partial unvaultings}, which would allow users to withdrawal partial vault
+    balances without having to perform the setup ceremony for a new vault.
+
+  \item \textbf{dynamic unvault targets}, or allowing the proposed withdrawal target
+    for a vault to be specified at unvault time rather than when the vault is first
+    created. This would remove the need for a statically-specified, intermediate live
+    wallet during withdrawal that only exists to route unvaulted funds to their desired
+    destination. 
+
+  \item \textbf{dynamic fee management} that, like dynamic targets, defers the
+    specification of fee rates and source of fees to
+    unvault time rather than vault creation time.
+\end{itemize}
+
+As we will see, no existing vault design meets this set of features.
 
 \section*{Precomputed vaults}
 
@@ -400,6 +429,8 @@ vault implemented with more general covenant scripting primitives.
   \centering
   \caption{A high-level description of the \opv{} state machine.}
 \end{figure}
+
+\pagebreak{}
 
 \subsection*{Components of the vault}
 
@@ -756,7 +787,8 @@ judicious use of chain space.
 
 \section*{Acknowledgements}
 
-Thanks to BL and Jeremy Rubin for review.
+Thanks to BL, Jeremy Rubin for review. Thanks to Antoine Riard for finding attacks.
+Thanks to Greg Sanders for ideas on script execution.
 
 \printbibliography
 
