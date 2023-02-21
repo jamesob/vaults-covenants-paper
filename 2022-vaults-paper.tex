@@ -198,6 +198,20 @@
   url = {https://github.com/jamesob/bitcoin/blob/2023-01-opvault/test/functional/feature_vaults.py},
 }
 
+@misc{Bip,
+  author = {James O'Beirne},
+  title = {OP\_VAULT BIP},
+  year = {2023},
+  url = {https://github.com/jamesob/bips/blob/jamesob-23-02-opvault/bip-vaults.mediawiki},
+}
+
+@misc{Ml,
+  author = {James O'Beirne},
+  title = {[bitcoin-dev] OP\_VAULT: a new vault proposal},
+  year = {2023},
+  url = {https://lists.linuxfoundation.org/pipermail/bitcoin-dev/2023-January/021318.html},
+}
+
 \end{filecontents}
 \addbibresource{\jobname.bib}
 
@@ -218,7 +232,7 @@
   \texttt{vaults@au92.org}
 }
 
-\date{\today}
+\date{January 9, 2023}
 \title{Vaults and Covenants}
 
 \begin{document}
@@ -246,6 +260,13 @@
   partial unvaultings, dynamic withdrawal targets, and recursive deposits.
 
 \end{abstract}
+
+\subsection*{Last updated}
+
+This article was last updated on \today{}. The technical details for the \opv{}
+proprosal have been superceded by a Bitcoin Improvement Proposal \cite{Bip} which 
+incorporates a number of changes based on feedback from the ensuing mailing list
+discussion \cite{Ml} after this paper's initial release.
 
 \section*{Introduction}
 
@@ -340,8 +361,6 @@ tree of possible transactions using that key, and then delete the key.
 This locks the coins into a predetermined flow, and technically satisfies the
 definition of a vault. A robust implementation of this approach is described in detail
 in \cite{Swambo}, as well as many related considerations like running a watchtower.
-
-\pagebreak{}
 
 Presigning transactions to construct vaults in this way does add the safety of a
 limited recovery window, but it has a number of drawbacks:
@@ -454,8 +473,6 @@ vault implemented with more general covenant scripting primitives.
   \caption{A high-level description of the \opv{} state machine.}
 \end{figure}
 
-\pagebreak{}
-
 \subsection*{Components of the vault}
 
 Each \opv{}-style vault makes use of a few pieces of essential data. These include
@@ -502,7 +519,7 @@ To create a vault, a user would spend to an output with the following
 \spk{} (or equivalent taproot structure):
 
 \begin{minted}{sh}
-  OP_VAULT <recovery-spk-hash> <delay-period> <unvault-spk-hash> 
+  <recovery-spk-hash> <delay-period> <unvault-spk-hash> OP_VAULT
 \end{minted}
 \noindent where
 
@@ -551,7 +568,7 @@ This witness is crucial for preventing unauthorized unvault attempts.
 The \opuv{} \spk{} must have the form
 
 \begin{minted}{sh}
-  OP_UNVAULT <recovery-spk-hash> <delay-period> <unvault-target-hash> 
+  <recovery-spk-hash> <delay-period> <unvault-target-hash> OP_UNVAULT 
 \end{minted}
 
 \noindent where the first two parameters are carried over from the input \opv{}
